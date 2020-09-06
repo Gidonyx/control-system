@@ -1,0 +1,23 @@
+{% block content %}
+
+    {% for picture in pictures %}
+
+<div class="col-lg-4 col-md-6 mb-4">
+    <div class="card collection-card z-depth-1-half">
+        <div class="view">
+            <img src="{{url_for('static', filename=picture)}}"
+                 class="img-fluid" alt="Скриншоты">
+        </div>
+    </div>
+</div>
+
+    {% endfor %}
+{% endblock %}
+
+
+
+
+
+
+
+
