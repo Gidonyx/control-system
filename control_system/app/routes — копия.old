@@ -1,0 +1,387 @@
+# -*- coding: utf-8 -*-
+from flask import render_template, flash, redirect, url_for, request
+from app import app
+from app.forms import LoginForm
+import json
+import base64
+import os.path
+import time
+import mysql.connector
+import requests
+
+
+cnx = mysql.connector.connect(user='root', password='rjhdby98',
+                                  host='127.0.0.1',
+                                  database='worktime')
+cursor = cnx.cursor()
+quary = ('SELECT * FROM `Computers`')
+cursor.execute(quary)
+print(cursor.fetchall())
+cursor.close()
+
+
+
+@app.route('/testknopka')
+def testknopka():
+    action = request.args.get('action')
+    print(action)
+    return render_template('testknopka.html')
+
+
+
+@app.route('/')
+def hello():
+    return render_template('Hello.html')
+
+
+@app.route('/img')
+def img():
+    pict_mas = []
+    count_pic = 0
+    for picture in os.listdir(path='app/static/uploads'):
+        pict_mas.append('uploads/' + picture)
+    print(pict_mas)
+
+
+    return render_template('img.html', title='Img', pictures=pict_mas)
+
+
+@app.route('/dash', methods=['post', 'get'])
+
+def dash():
+#Вывод пользователей слево------------------
+    cursor = cnx.cursor()
+    quary = ('SELECT name_user FROM `users`')
+    cursor.execute(quary)
+
+    user_mass = []
+    rows=cursor.fetchall()
+    for row in rows:
+        user_mass.append(row[0])
+        print(row)
+    cursor.close()
+#--------------------------------------------
+# Вывод картинок пользователя------------------
+    name = request.args.get('user')
+
+    cursor = cnx.cursor()
+    quary = ('SELECT id_user FROM `users` WHERE name_user="'+name+'"')
+    cursor.execute(quary)
+
+    user_id_mass=[]
+    rows = cursor.fetchall()
+    for row in rows:
+        user_id_mass.append(row[0])
+    cursor.close()
+
+    id_user=user_id_mass[0]
+    id_user=str(id_user)
+    
+# --------------------------------------------
+# Процесс И Сайты---------------
+    process_mass=[]
+    sites_mass=[]
+    pict_mas = []
+
+    if request.method == 'POST':
+        datestart = request.form.get('datestart') 
+        dateend = request.form.get('dateend')
+        typex = request.form.get('type') 
+        login = request.form.get('login')
+        name_user = request.form.get('name_user')
+        computer = request.form.get('computer')
+        owner = request.form.get('owner')
+
+        if typex == "user":
+            cursor = cnx.cursor()
+            quary = ('INSERT INTO users (login, name_user) VALUES ("' + login + '", "' + name_user + '")')
+            cursor.execute(quary)
+            cnx.commit()
+            cursor.close()
+
+            cursor = cnx.cursor()
+            quary = ('SELECT name_user FROM `users`')
+            cursor.execute(quary)
+            user_mass = []
+            rows=cursor.fetchall()
+            for row in rows:
+                user_mass.append(row[0])
+                print(row)
+            cursor.close()
+
+            cursor = cnx.cursor()
+            quary = ('select name_process, date_time, window_title from processandscreen where id_user ="' + id_user + '" and type="process" ORDER BY date_time DESC')
+            cursor.execute(quary)
+            vivod_proc = cursor.fetchall()
+            for proc in vivod_proc:
+                process_mass.append(proc)
+            cursor.close()
+
+            cursor = cnx.cursor()
+            quary = ('select url, name_process, date_time, window_title from processandscreen where id_user ="' + id_user + '" and type="url" ORDER BY date_time DESC')
+            cursor.execute(quary)
+            vivod_sites = cursor.fetchall()
+            for site in vivod_sites:
+                sites_mass.append(site)
+            cursor.close()
+
+
+            cursor = cnx.cursor()
+            quary = ('select screenshot, date_time from processandscreen where id_user ="'+id_user+'" and type="screenshot" ORDER BY date_time DESC')
+            cursor.execute(quary)
+            vivod_pict=cursor.fetchall()
+            for pict in vivod_pict:
+                pict_mas.append(pict)
+            cursor.close()
+
+            pc_mass=[]
+            cursor = cnx.cursor()
+            quary = ('select * from computers')
+            cursor.execute(quary)
+            vivod_pc = cursor.fetchall()
+            for pc in vivod_pc:
+                pc_mass.append(pc)
+            cursor.close()
+
+        elif typex == "machine":
+            cursor = cnx.cursor()
+            quary = ('INSERT INTO computers (name_computer, owner) VALUES ("' + computer + '", "' + owner + '")')
+            cursor.execute(quary)
+            cnx.commit()
+            cursor.close()
+
+            cursor = cnx.cursor()
+            quary = ('SELECT name_user FROM `users`')
+            cursor.execute(quary)
+
+            user_mass = []
+            rows=cursor.fetchall()
+            for row in rows:
+                user_mass.append(row[0])
+                print(row)
+            cursor.close()
+
+            cursor = cnx.cursor()
+            quary = ('select name_process, date_time, window_title from processandscreen where id_user ="' + id_user + '" and type="process" ORDER BY date_time DESC')
+            cursor.execute(quary)
+            vivod_proc = cursor.fetchall()
+            for proc in vivod_proc:
+                process_mass.append(proc)
+            cursor.close()
+
+            cursor = cnx.cursor()
+            quary = ('select url, name_process, date_time, window_title from processandscreen where id_user ="' + id_user + '" and type="url" ORDER BY date_time DESC')
+            cursor.execute(quary)
+            vivod_sites = cursor.fetchall()
+            for site in vivod_sites:
+                sites_mass.append(site)
+            cursor.close()
+
+            cursor = cnx.cursor()
+            quary = ('select screenshot, date_time from processandscreen where id_user ="'+id_user+'" and type="screenshot" ORDER BY date_time DESC')
+            cursor.execute(quary)
+            vivod_pict=cursor.fetchall()
+            for pict in vivod_pict:
+                pict_mas.append(pict)
+            cursor.close()
+
+            pc_mass=[]
+            cursor = cnx.cursor()
+            quary = ('select * from computers')
+            cursor.execute(quary)
+            vivod_pc = cursor.fetchall()
+            for pc in vivod_pc:
+                pc_mass.append(pc)
+            cursor.close()
+
+        else:
+            cursor = cnx.cursor()
+            quary = ('select name_process, date_time, window_title from processandscreen where id_user ="' + id_user + '" and type="process" AND date_time >="' + datestart + '" AND date_time <="' + dateend + '" ORDER BY date_time DESC')
+            cursor.execute(quary)
+            vivod_proc = cursor.fetchall()
+            for proc in vivod_proc:
+                process_mass.append(proc)
+            cursor.close()
+
+            cursor = cnx.cursor()
+            quary = ('select url, name_process, date_time, window_title from processandscreen where id_user ="' + id_user + '" and type="url" AND date_time >="' + datestart + '" AND date_time <="' + dateend + '" ORDER BY date_time DESC')
+            cursor.execute(quary)
+            vivod_sites = cursor.fetchall()
+            for site in vivod_sites:
+                sites_mass.append(site)
+            cursor.close()
+
+            cursor = cnx.cursor() 
+            quary = ('select screenshot, date_time from processandscreen where id_user ="'+id_user+'" and type="screenshot" AND date_time >="' + datestart + '" AND date_time <="' + dateend + '" ORDER BY date_time DESC')
+            cursor.execute(quary)
+            vivod_pict=cursor.fetchall()
+            for pict in vivod_pict:
+                pict_mas.append(pict)
+            cursor.close()   
+    else:
+        cursor = cnx.cursor()
+        quary = ('select name_process, date_time, window_title from processandscreen where id_user ="' + id_user + '" and type="process" ORDER BY date_time DESC')
+        cursor.execute(quary)
+        vivod_proc = cursor.fetchall()
+        for proc in vivod_proc:
+            process_mass.append(proc)
+        cursor.close()
+
+        cursor = cnx.cursor()
+        quary = ('select url, name_process, date_time, window_title from processandscreen where id_user ="' + id_user + '" and type="url" ORDER BY date_time DESC')
+        cursor.execute(quary)
+        vivod_sites = cursor.fetchall()
+        for site in vivod_sites:
+            sites_mass.append(site)
+        cursor.close()
+
+        cursor = cnx.cursor()
+        quary = ('select screenshot, date_time from processandscreen where id_user ="'+id_user+'" and type="screenshot" ORDER BY date_time DESC')
+        cursor.execute(quary)
+        vivod_pict=cursor.fetchall()
+        for pict in vivod_pict:
+            pict_mas.append(pict)
+        cursor.close()
+    
+#----------------------------------------------
+
+# Вывод Компов пользователей-------------------
+    pc_mass=[]
+
+    cursor = cnx.cursor()
+    quary = ('select * from computers')
+    cursor.execute(quary)
+    vivod_pc = cursor.fetchall()
+    for pc in vivod_pc:
+        pc_mass.append(pc)
+    cursor.close()
+#------------------------------------------------
+
+    return render_template('dash.html',title='Img', pictures=pict_mas, user_mass_dash=user_mass, process_mass_dash=process_mass, sites_mass_dash=sites_mass, pc_mass_dash=pc_mass)
+
+
+@app.route('/auth', methods=['post', 'get'])
+def auth():
+    if request.method == 'POST':
+        login = request.form.get('login') 
+        user_name = request.form.get('user_name')
+
+        user=[]
+
+        cursor = cnx.cursor()
+        quary = ('select * from users WHERE login = "'+login+'" AND name_user = "'+user_name+'"')
+        cursor.execute(quary)
+        users = cursor.fetchall()
+        for u in users:
+            user.append(u)
+        cursor.close()
+
+        if user:
+            nameMass = user_name.split()
+            return redirect('/dash?user='+nameMass[0]+'%20'+nameMass[1]+'')
+    
+    return render_template('auth.html')
+
+
+
+#Поулчение картинок---------------------------------------------
+@app.route('/upload_pic', methods=['GET', 'POST'])
+def upload_pic():
+    print(request)
+    if request.method == 'POST':
+        data_f_client = json.loads(request.data)
+        print(data_f_client)
+
+        absolut_vremya = time.strftime("%Y-%m-%d %H-%M-%S", time.localtime())
+        date_vremya = time.strftime("%Y-%m-%d", time.localtime())
+
+        filecheck_date = f"app/static/{date_vremya}"
+
+        if not os.path.exists(filecheck_date):
+            os.mkdir(f"app/static/{date_vremya}")
+
+        filecheck_name = f"app/static/{date_vremya}/{data_f_client['img_name']}"
+
+        papka = data_f_client['img_name']
+
+        if not os.path.exists(filecheck_name):
+            os.mkdir(f"app/static/{date_vremya}/{data_f_client['img_name']}")
+
+        f = open(f"app/static/{date_vremya}/{papka}/{data_f_client['img_name']+ ' ' + absolut_vremya + '.jpg'}", 'wb')
+        decode64 = base64.b64decode(data_f_client['img_bytes'])
+        f.write(decode64)
+        f.close()
+
+    return 'upload_finish'
+#---------------------------------------------
+
+#Поулчение прцоессов---------------------------------------------
+@app.route('/upload_process', methods=['GET', 'POST'])
+def upload_process():
+    print(request)
+    if request.method == 'POST':
+        data_f_client = json.loads(request.data)
+        print(data_f_client)
+
+        absolut_vremya = time.strftime("%Y-%m-%d %H-%M-%S", time.localtime())
+
+        cursor = cnx.cursor()
+        quary = ('INSERT INTO processandscreen (date_time, type ,name_process, window_title, id_user, id_computer) VALUES ("' + absolut_vremya + '" , "' + data_f_client['type'] + '" , "' + data_f_client['name_process'] + '", "' + data_f_client['window_title'] + '","' + data_f_client['id_user'] + '", "' + data_f_client['id_computer'] + '")')
+        cursor.execute(quary)
+        cnx.commit()
+        cursor.close()
+
+    return 'upload_finish'
+#---------------------------------------------
+
+
+#Получение вкладок---------------------------------------------
+@app.route('/upload_url', methods=['GET', 'POST'])
+def upload_url():
+    print(request)
+    if request.method == 'POST':
+        data_f_client = json.loads(request.data)
+        print(data_f_client)
+
+        absolut_vremya = time.strftime("%Y-%m-%d %H-%M-%S", time.localtime())
+
+        cursor = cnx.cursor()
+        quary = ('INSERT INTO processandscreen (date_time, type ,name_process, url, window_title, id_user, id_computer) VALUES ("' + absolut_vremya + '" , "' + data_f_client['type'] + '" , "' + data_f_client['name_process'] + '", "' + data_f_client['url'] + '", "' + data_f_client['window_title'] + '", "' + data_f_client['id_user'] + '", "' + data_f_client['id_computer'] + '")')
+        cursor.execute(quary)
+        cnx.commit()
+        cursor.close()
+
+
+    return 'upload_finish'
+#---------------------------------------------
+
+
+@app.route('/index')
+def index():
+
+    user = {'username': 'Danil'}
+    posts = [
+        {
+            'author': {'username': 'John'},
+            'body': 'Beautiful day in Portland!'
+        },
+        {
+            'author': {'username': 'Susan'},
+            'body': 'The Avengers movie was so cool!'
+
+        }
+
+
+    ]
+    return render_template('index.html', title='Home', user=user, posts=posts)
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    form = LoginForm()
+    if form.validate_on_submit():
+        flash('Login requested for user {}, remember_me={}'.format(
+            form.username.data, form.remember_me.data))
+        return redirect(url_for('index'))
+    return render_template('login.html', title='Sign In', form=form)
+
